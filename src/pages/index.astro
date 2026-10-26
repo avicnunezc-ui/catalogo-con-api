@@ -1,0 +1,112 @@
+---
+import Layout from "../layouts/Layout.astro";
+import ProductoCard from "../components/ProductoCard.astro";
+
+interface Producto {
+  id: number;
+  title: string;
+  price: number;
+  category: string;
+  rating: number;
+  thumbnail: string;
+}
+
+let productos: Producto[] = [];
+let mensajeError = "";
+
+try {
+  const respuesta = await fetch("https://dummyjson.com/products?limit=12");
+  if (!respuesta.ok) {
+    throw new Error(`Error HTTP: ${respuesta.status}`);
+  }
+  const datos = await respuesta.json();
+  productos = datos.products ?? [];
+} catch (error) {
+  console.error("Error al consultar la API:", error);
+  mensajeError = "No fue posible cargar los productos. Revisa tu conexión e inténtalo nuevamente.";
+}
+---
+<Layout title="Catálogo | Nébula Store">
+  <header class="barra">
+    <a class="marca" href="/" aria-label="Nébula Store, inicio">
+      <span class="marca-icono">N</span>
+      <span>NÉBULA<span class="marca-suave"> STORE</span></span>
+    </a>
+    <span class="estado-api"><span class="punto"></span> CATÁLOGO EN VIVO</span>
+  </header>
+
+  <main class="contenedor">
+    <section class="hero">
+      <p class="sobretitulo">SELECCIÓN DIGITAL · VOL. 01</p>
+      <h1>Encuentra tu<br /><span>próximo favorito.</span></h1>
+      <p class="descripcion">Una selección de productos de demostración, cargados directamente desde una API.</p>
+      <div class="hero-detalles">
+        <span><strong>{productos.length.toString().padStart(2, "0")}</strong> productos cargados</span>
+        <span class="separador">/</span>
+        <span>Datos de DummyJSON</span>
+      </div>
+    </section>
+
+    <section class="catalogo" aria-labelledby="titulo-catalogo">
+      <div class="catalogo-encabezado">
+        <div>
+          <p class="sobretitulo">EXPLORA LA COLECCIÓN</p>
+          <h2 id="titulo-catalogo">Catálogo de productos</h2>
+        </div>
+        <label class="buscador-contenedor" for="buscador">
+          <span class="lupa" aria-hidden="true">⌕</span>
+          <input id="buscador" type="search" placeholder="Buscar producto..." autocomplete="off" />
+          <span class="atajo">⌕</span>
+        </label>
+      </div>
+
+      {mensajeError && <p class="mensaje mensaje-error" role="alert">{mensajeError}</p>}
+      {!mensajeError && productos.length === 0 && <p class="mensaje">No hay productos disponibles en este momento.</p>}
+
+      <div class="grid-productos" id="grid-productos">
+        {productos.map((producto) => (
+          <ProductoCard
+            key={producto.id}
+            title={producto.title}
+            price={producto.price}
+            category={producto.category}
+            rating={producto.rating}
+            thumbnail={producto.thumbnail}
+          />
+        ))}
+      </div>
+      <p id="sin-resultados" class="mensaje sin-resultados" hidden>No encontramos productos con ese nombre. Prueba otra búsqueda.</p>
+      <div class="catalogo-pie">
+        <span>NEBULA / PRODUCT INDEX</span>
+        <span id="contador-resultados">{productos.length} resultados</span>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>© 2026 NÉBULA STORE</span>
+    <span>PROTOTIPO EDUCATIVO · DATOS DE DUMMYJSON</span>
+  </footer>
+
+  <script>
+    const buscador = document.querySelector("#buscador");
+    const tarjetas = document.querySelectorAll(".producto");
+    const sinResultados = document.querySelector("#sin-resultados");
+    const contador = document.querySelector("#contador-resultados");
+
+    buscador?.addEventListener("input", () => {
+      const consulta = buscador.value.trim().toLowerCase();
+      let visibles = 0;
+
+      tarjetas.forEach((tarjeta) => {
+        const nombre = tarjeta.dataset.title ?? "";
+        const coincide = nombre.includes(consulta);
+        tarjeta.hidden = !coincide;
+        if (coincide) visibles++;
+      });
+
+      if (sinResultados) sinResultados.hidden = visibles !== 0;
+      if (contador) contador.textContent = `${visibles} ${visibles === 1 ? "resultado" : "resultados"}`;
+    });
+  </script>
+</Layout>
